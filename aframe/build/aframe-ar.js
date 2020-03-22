@@ -4988,6 +4988,10 @@ AFRAME.registerComponent('arjs-anchor', {
         patternUrl: {
             type: 'string',
         },
+        patternRatio: {
+            type: 'number',
+            default: -1,
+        },
         barcodeValue: {
             type: 'number'
         },
@@ -5054,6 +5058,7 @@ AFRAME.registerComponent('arjs-anchor', {
 
             // honor this.data.preset
             var markerParameters = Object.assign({}, arProfile.defaultMarkerParameters)
+            var ctxPrm = Object.assign({}, arProfile.contextParameters)
 
             if (_this.data.preset === 'hiro') {
                 markerParameters.type = 'pattern'
@@ -5077,6 +5082,7 @@ AFRAME.registerComponent('arjs-anchor', {
             } else if (_this.data.type === 'pattern') {
                 markerParameters.type = _this.data.type
                 markerParameters.patternUrl = _this.data.patternUrl;
+                ctxPrm.patternRatio = _this.data.patternRatio;
                 markerParameters.markersAreaEnabled = false
             }
 
@@ -5090,6 +5096,8 @@ AFRAME.registerComponent('arjs-anchor', {
             //////////////////////////////////////////////////////////////////////////////
 
             var arSession = arjsSystem._arSession
+            arSession.contextParameters = ctxPrm
+            console.log(ctxPrm);
             var arAnchor = _this._arAnchor = new ARjs.Anchor(arSession, markerParameters)
 
             // it is now considered isReady
@@ -5203,6 +5211,7 @@ AFRAME.registerPrimitive('a-marker', AFRAME.utils.extendDeep({}, AFRAME.primitiv
         'type': 'arjs-anchor.type',
         'size': 'arjs-anchor.size',
         'url': 'arjs-anchor.patternUrl',
+        'patternRatio': 'arjs-anchor.patternRatio',
         'value': 'arjs-anchor.barcodeValue',
         'preset': 'arjs-anchor.preset',
         'min-confidence': 'arjs-anchor.minConfidence',

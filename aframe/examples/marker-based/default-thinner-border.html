@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <script src="https://aframe.io/releases/1.0.0/aframe.min.js"></script>
+    <!-- we import arjs version without NFT but with marker + location based support -->
+    <script src="../../../aframe/build/aframe-ar.js"></script>
+    <body style="margin : 0px; overflow: hidden;">
+      <a-scene embedded arjs='sourceType: image; sourceUrl:../../../../../test/data/images/marker-artoolkit-pattern-pattratio-09.png;'>
+        <a-marker patternRatio='0.9'
+        type='pattern'
+				url='../../../three.js/examples/marker-training/examples/pattern-files/pattern-arjs.patt'>
+          <a-box position='0 0 0.5' material='opacity: 0.5; side: double'>
+            <a-torus-knot radius='0.26' radius-tubular='0.05'>
+              <a-animation attribute="rotation" to="360 0 0" dur="3000" easing='linear' repeat="indefinite"></a-animation>
+              </a-torus-knot>
+          </a-box>
+        </a-marker>
+        <a-entity camera></a-entity>
+        </a-scene>
+    </body>
+</html>
