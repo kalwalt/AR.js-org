@@ -5,7 +5,8 @@
   "main": "./aframe/build/aframe-ar.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "make build"
+    "build": "./node_modules/.bin/webpack --env.production",
+    "build:dev": "./node_modules/.bin/webpack  --env.development"
   },
   "files": [
     "three.js/build",
@@ -47,5 +48,14 @@
   "bugs": {
     "url": "https://github.com/AR-js-org/AR.js/issues"
   },
-  "homepage": "https://github.com/AR-js-org/AR.js/"
+  "homepage": "https://github.com/AR-js-org/AR.js/",
+  "devDependencies": {
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
+    "aframe": "^1.0.4",
+    "artoolkit5-js": "0.0.4",
+    "three": "^0.115.0"
+  }
 }
