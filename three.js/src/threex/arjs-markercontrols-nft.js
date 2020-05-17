@@ -1,6 +1,9 @@
 import * as THREE from 'three';
-import { artoolkit, ARController, ARCameraParam } from 'jsartoolkit';
 import ArBaseControls from './threex-arbasecontrols';
+import Worker from './arjs-markercontrols-nft.worker.js';
+import jsartoolkit from 'jsartoolkit'; // TODO comment explanation
+const { ARToolkit } = jsartoolkit;
+const artoolkit = new ARToolkit();
 
 const MarkerControls = function (context, object3d, parameters) {
     var _this = this
@@ -233,7 +236,7 @@ MarkerControls.prototype._initArtoolkit = function () {
 
         // start tracking this pattern
         if (_this.parameters.type === 'pattern') {
-            arController.loadMarker(_this.parameters.patternUrl, function (markerId) {
+            arController.loadMarker(_this.parameters.patternUrl).then(function (markerId) {
                 artoolkitMarkerId = markerId
                 arController.trackPatternMarkerId(artoolkitMarkerId, _this.parameters.size);
             });
@@ -276,13 +279,7 @@ MarkerControls.prototype._initArtoolkit = function () {
     };
 
     function handleNFT(descriptorsUrl, arController) {
-        // create a Worker to handle loading of NFT marker and tracking of it
-        var workerBlob = new Blob(
-            [workerRunner.toString().replace(/^function .+\{?|\}$/g, '')],
-            { type: 'text/js-worker' }
-        );
-        var workerBlobUrl = URL.createObjectURL(workerBlob);
-        var worker = new Worker(workerBlobUrl);
+        var worker = new Worker();
 
         window.addEventListener('arjs-video-loaded', function (ev) {
             var video = ev.detail.component;
@@ -291,12 +288,12 @@ MarkerControls.prototype._initArtoolkit = function () {
 
             var pscale = 320 / Math.max(vw, vh / 3 * 4);
 
-            w = vw * pscale;
-            h = vh * pscale;
-            pw = Math.max(w, h / 3 * 4);
-            ph = Math.max(h, w / 4 * 3);
-            ox = (pw - w) / 2;
-            oy = (ph - h) / 2;
+            const w = vw * pscale;
+            const h = vh * pscale;
+            const pw = Math.max(w, h / 3 * 4);
+            const ph = Math.max(h, w / 4 * 3);
+            const ox = (pw - w) / 2;
+            const oy = (ph - h) / 2;
 
             arController.canvas.style.clientWidth = pw + "px";
             arController.canvas.style.clientHeight = ph + "px";
@@ -320,7 +317,7 @@ MarkerControls.prototype._initArtoolkit = function () {
                 pw: pw,
                 ph: ph,
                 marker: descriptorsUrl,
-                param: arController.cameraParam.src,
+                param: arController.cameraParam,
             });
 
             worker.onmessage = function (ev) {
@@ -367,100 +364,7 @@ MarkerControls.prototype._initArtoolkit = function () {
             };
 
         });
-
-
-
-    };
-
-    function workerRunner() {
-        this.onmessage = function (e) {
-            var msg = e.data;
-            switch (msg.type) {
-                case "init": {
-                    load(msg);
-                    return;
-                }
-                case "process": {
-                    next = msg.imagedata;
-                    process();
-                    return;
-                }
-            }
-        };
-
-        var next = null;
-
-        var ar = null;
-        var markerResult = null;
-
-        function load(msg) {
-            var camUrl, nftMarkerUrl;
-            var basePath = self.origin;
-            console.log('base path:', basePath);
-            // test if the msg.param (the incoming url) is an http or https path
-            var regexC = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#()?&//=]*)/igm
-            var reC = regexC.test(msg.param);
-            if (reC == true) {
-                camUrl = msg.param;
-            } else if (reC == false) {
-                camUrl = basePath + '/' + msg.param;
-            }
-            var onLoad = function () {
-                ar = new ARController(msg.pw, msg.ph, param);
-                var cameraMatrix = ar.getCameraMatrix();
-
-                // after the ARController is set up, we load the NFT Marker
-                var regexM = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#()?&//=]*)/igm
-                var reM = regexM.test(msg.marker);
-                if (reM == true) {
-                    nftMarkerUrl = msg.marker;
-                } else if (reM == false) {
-                    nftMarkerUrl = basePath + '/' + msg.marker;
-                }
-                ar.loadNFTMarker(nftMarkerUrl, function (markerId) {
-                    ar.trackNFTMarkerId(markerId);
-                    postMessage({ type: 'endLoading' })
-                }, function (err) {
-                    console.log('Error in loading marker on Worker', err)
-                });
-
-                // ...and we listen for event when marker has been found from camera
-                ar.addEventListener('getNFTMarker', function (ev) {
-                    // let AR.js know that a NFT marker has been found, with its matrix for positioning
-                    markerResult = {
-                        type: 'found',
-                        matrix: JSON.stringify(ev.data.matrix),
-                    };
-                });
-
-                postMessage({ type: "loaded", proj: JSON.stringify(cameraMatrix) });
-            };
-
-            var onError = function (error) {
-                console.error(error);
-            };
-            console.log(msg.param);
-            // we cannot pass the entire ARController, so we re-create one inside the Worker, starting from camera_param
-            var param = new ARCameraParam(camUrl, onLoad, onError);
-        }
-
-        function process() {
-            markerResult = null;
-
-            if (ar && ar.process) {
-                ar.process(next);
-            }
-
-            if (markerResult) {
-                postMessage(markerResult);
-            } else {
-                postMessage({
-                    type: "not found",
-                });
-            }
-            next = null;
-        }
-    }; // workerrunner function up til here
+    }
 
     function onMarkerFound(event) {
         if (event.data.type === artoolkit.PATTERN_MARKER && event.data.marker.cfPatt < _this.parameters.minConfidence) return

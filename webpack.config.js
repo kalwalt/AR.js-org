@@ -1,13 +1,36 @@
 var path = require('path');
 
-module.exports = env => {
-  const mode = env.production ? 'production' : 'development';
-  const devtool = env.production ? false : 'inline-source-map';
-  console.log(`${mode} build`);
+module.exports = (env, argv) => {
+  let devtool = false;
+  if (argv.mode === 'development') {
+    devtool = 'inline-source-map';
+  }
+  console.log(`${argv.mode} build`);
+  const externals = {
+    aframe: {
+      commonjs: 'aframe',
+      commonjs2: 'aframe',
+      amd: 'aframe',
+      root: 'AFRAME' // indicates global variable
+    },
+    three: {
+      commonjs: 'three',
+      commonjs2: 'three',
+      amd: 'three',
+      root: 'THREE' // indicates global variable
+    }
+  };
+  const module = {
+    rules: [
+      {
+        test: /\.worker\.js$/,
+        use: { loader: 'worker-loader' }
+      }
+    ]
+  };
 
   return [{
     name: 'default',
-    mode,
     devtool,
     entry: './aframe/src/index.js',
     output: {
@@ -19,40 +42,31 @@ module.exports = env => {
     },
     resolve: {
       alias: {
-        jsartoolkit: 'artoolkit5-js'
+        jsartoolkit: 'artoolkit5-js',
+        threexArmarkercontrols$: path.resolve(__dirname, 'three.js/src/threex/threex-armarkercontrols.js')
       }
     },
-    externals: {
-      aframe: {
-        commonjs: 'aframe',
-        commonjs2: 'aframe',
-        amd: 'aframe',
-        root: 'AFRAME' // indicates global variable
-      },
-      three: {
-        commonjs: 'three',
-        commonjs2: 'three',
-        amd: 'three',
-        root: 'THREE' // indicates global variable
+    module,
+    externals
+  },
+  {
+    name: 'nft',
+    devtool,
+    entry: './aframe/src/index-nft.js',
+    output: {
+      library: 'ARjs',
+      path: path.resolve(__dirname, 'aframe/build'),
+      filename: 'aframe-ar-nft.js',
+      libraryTarget: 'umd',
+      globalObject: 'this'
+    },
+    resolve: {
+      alias: {
+        jsartoolkit: 'artoolkit5-js',
+        threexArmarkercontrols$: path.resolve(__dirname, 'three.js/src/threex/threex-armarkercontrols-nft.js')
       }
-    }
-    // {
-    //   name: 'nft',
-    //   mode,
-    //   devtool,
-    //   entry: './aframe/src/index-nft.js',
-    //   output: {
-    //     library: 'ARjs',
-    //     path: path.resolve(__dirname, 'aframe/build'),
-    //     filename: 'aframe-ar-nft.js',
-    //     libraryTarget: 'umd',
-    //     globalObject: 'this'
-    //   },
-    //   resolve: {
-    //     alias: {
-    //       $jsartoolkit: 'artoolkit5-js'
-    //     }
-    //   }
-    // }
+    },
+    module,
+    externals
   }];
 };
